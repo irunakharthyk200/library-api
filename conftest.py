@@ -1,6 +1,15 @@
+import os
 import pytest
 import psycopg2
-from app import create_app, DEFAULT_DB_CONFIG
+from app import create_app
+
+TEST_DB_CONFIG = {
+    "host": os.environ.get("POSTGRES_HOST", "localhost"),
+    "port": int(os.environ.get("POSTGRES_PORT", "5432")),
+    "database": os.environ.get("POSTGRES_DB", "library_test_db"),
+    "user": os.environ.get("POSTGRES_USER", "postgres"),
+    "password": os.environ.get("POSTGRES_PASSWORD", "secret"),
+}
 
 @pytest.fixture(scope="session")
 def test_db():
