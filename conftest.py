@@ -13,7 +13,7 @@ TEST_DB_CONFIG = {
 
 @pytest.fixture(scope="session")
 def test_db():
-    conn = psycopg2.connect(**DEFAULT_DB_CONFIG)
+    conn = psycopg2.connect(**TEST_DB_CONFIG)
     conn.autocommit = True
     cur = conn.cursor()
     cur.execute("DROP DATABASE IF EXISTS library_test_db")
