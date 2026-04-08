@@ -34,7 +34,8 @@ def test_db():
         cur.execute("""
             CREATE TABLE IF NOT EXISTS authors (
                 id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL
+                name TEXT NOT NULL,
+                birth_year INTEGER
             );
         """)
         cur.execute("""
@@ -48,7 +49,6 @@ def test_db():
                 status TEXT DEFAULT 'available'
             );
         """)
-    
     yield conn
     conn.close()
 
