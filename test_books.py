@@ -43,6 +43,14 @@ class TestBooks:
         assert client.delete(f"/api/books/{book['id']}").status_code == 204
         assert client.get(f"/api/books/{book['id']}").status_code == 404
 
+    def test_create_book_default_status(self, client):
+        """Книга створюється зі статусом за замовчуванням - Харчук Ірина"""
+        response = client.post("/api/books", json={
+            "title": "Test Book",
+            "created_by": "Харчук Ірина",
+        })
+        assert response.status_code == 201
+
 class TestBooksFilter:
     def test_filter_by_genre(self, client):
         client.post("/api/books", json={"title": "P1", "genre": "poetry", "created_by": "Харчук Ірина"})
