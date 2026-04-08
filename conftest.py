@@ -13,43 +13,51 @@ TEST_DB_CONFIG = {
 
 @pytest.fixture(scope="session")
 def test_db():
-    conn = psycopg2.connect(**TEST_DB_CONFIG)
+
+    admin_config = TEST_DB_CONFIG.copy()
+    admin_config["database"] = "postgres"
+    
+    conn = psycopg2.connect(**admin_config)
     conn.autocommit = True
     cur = conn.cursor()
-    cur.execute("DROP DATABASE IF EXISTS library_test_db")
-    cur.execute("CREATE DATABASE library_test_db")
-    
-    test_config = DEFAULT_DB_CONFIG.copy()
-    test_config["dbname"] = "library_test_db"
-    
-    with psycopg2.connect(**test_config) as t_conn:
-        with t_conn.cursor() as t_cur:
-            t_cur.execute("""
-                CREATE TABLE authors (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    birth_year INTEGER
-                );
-                CREATE TABLE books (
-                    id SERIAL PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    genre TEXT,
-                    year_published INTEGER,
-                    author_id INTEGER REFERENCES authors(id) ON DELETE SET NULL,
-                    created_by TEXT NOT NULL
-                );
-            """)
-    yield test_config
 
-@pytest.fixture(scope="session")
-def app(test_db):
-    return create_app(db_config=test_db)
-
-@pytest.fixture(scope="function")
-def client(app, test_db):
-    conn = psycopg2.connect(**test_db)
-    with conn.cursor() as cur:
-        cur.execute("TRUNCATE books, authors RESTART IDENTITY CASCADE")
-    conn.commit()
+    cur.execute(f"DROP DATABASE IF EXISTS {TEST_DB_CONFIG['database']}")
+    cur.execute(f"CREATE DATABASE {TEST_DB_CONFIG['database']}")
+    
+    cur.close()
     conn.close()
-    return app.test_client()
+
+    conn = psycopg2.connect(**TEST_DB_CONFIG)
+    conn.autocommit = True
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS authors (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS books (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                genre TEXT,
+                year_published INTEGER,
+                author_id INTEGER REFERENCES authors(id),
+                created_by TEXT,
+                status TEXT DEFAULT 'available'
+            );
+        """)
+    
+    yield conn
+    conn.close()
+
+@pytest.fixture
+def client(test_db):
+    app = create_app(TEST_DB_CONFIG)
+    app.config["TESTING"] = True
+    with app.test_client() as client:
+        yield client
+
+    with test_db.cursor() as cur:
+        cur.execute("TRUNCATE books, authors RESTART IDENTITY CASCADE")
